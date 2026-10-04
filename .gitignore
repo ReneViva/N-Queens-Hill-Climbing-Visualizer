@@ -1,0 +1,6 @@
+# Temporary local browser validation data
+.browser-validation/
+
+# Operating-system metadata
+Thumbs.db
+.DS_Store

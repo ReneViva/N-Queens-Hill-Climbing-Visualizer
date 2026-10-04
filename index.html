@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>N-Queens · Hill-Climbing Lab</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="engine.js" defer></script>
+  <script src="learning.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="Hill-Climbing Lab home"><span class="brand-mark">♛</span><span>SEARCH<span class="brand-light"> / LAB</span></span></a>
+      <div class="topbar-right"><span class="offline"><i></i> Works entirely offline</span><button id="theme-toggle" class="icon-button" title="Switch between dark and light themes" aria-label="Switch to light theme">☀</button></div>
+    </header>
+    <main id="top">
+      <section class="hero">
+        <div><div class="eyebrow">ARTIFICIAL INTELLIGENCE <span> / </span> LOCAL SEARCH</div><h1>N-Queens, one move at a time<span>.</span></h1><p>Explore every neighbor. Follow the decision. Understand why the search stops.</p></div>
+        <div class="cost-note"><span class="tiny-label">OUR OBJECTIVE</span><strong>Fewer conflicts. Lower <em>h</em>.</strong><span>A complete board → a better neighbor → repeat</span></div>
+      </section>
+
+      <details class="configuration card" open>
+        <summary><span><span class="section-index">01</span> Configure your experiment</span><span class="summary-hint">Board, initial state & search rules</span></summary>
+        <div class="config-body">
+          <div class="config-group dimensions"><label class="check-label"><input type="checkbox" id="square-mode" checked> Square N-Queens mode</label><div class="field-row"><label>N<input id="n-input" type="number" min="1" max="20" value="4"></label><label>Rows<input id="rows-input" type="number" min="1" max="20" value="4" disabled></label><label>Columns<input id="cols-input" type="number" min="1" max="20" value="4" disabled></label></div><span class="field-help">One queen in every column · dimensions 1–20</span></div>
+          <div class="config-group initial"><label>Initial state<select id="initial-mode"><option value="random">Random initial state</option><option value="custom">Custom initial state</option></select></label><label>Queen rows <span class="muted">(column order)</span><input id="custom-state" value="[4,3,4,2]" spellcheck="false" aria-describedby="state-help"></label><span class="field-help" id="state-help">Index = column; value = row. Rows start at 1.</span></div>
+          <div class="config-group search-rules"><label>Tie-breaking<select id="tie-break"><option value="random">Random among best successors</option><option value="first">First by column, then row</option><option value="manual">Let me choose among best</option></select></label><div class="field-row sideways-row"><label class="check-label"><input type="checkbox" id="allow-sideways"> Allow sideways moves</label><label class="limit-label">Consecutive limit<input id="sideways-limit" type="number" min="0" max="10000" value="100"></label></div></div>
+          <div class="config-group config-actions"><button id="generate-board" class="primary">Generate board <span>↗</span></button><button id="new-random">New random board</button><label>Verified examples<select id="preset-select"><option value="">Choose a preset…</option></select></label></div>
+        </div>
+        <div id="config-message" class="config-message" role="status"></div>
+      </details>
+
+      <section class="card algorithm-selector">
+        <div class="mode-choice"><label for="algorithm-mode" title="Choose how hill climbing decides which neighboring state to visit.">HOW DO YOU WANT TO RUN HILL CLIMBING?</label><select id="algorithm-mode" title="Choose how hill climbing decides which neighboring state to visit."><option value="standard">Standard / Steepest Hill Climbing</option><option value="stochastic">Stochastic Hill Climbing</option><option value="first-choice">First-Choice Hill Climbing</option><option value="restart">Random-Restart Hill Climbing</option></select><p id="mode-simple"></p></div>
+        <div id="stochastic-settings" class="mode-setting" hidden><label>Stochastic Selection<select id="stochastic-selection"><option value="uniform">Uniform among improving moves</option><option value="weighted">Weighted by amount of improvement</option></select></label><p class="field-help">Weight = current h − candidate h. Equal-cost fallback is uniform.</p></div>
+        <div class="mode-setting restart-settings"><label>Maximum Restarts<input id="restart-limit" type="number" min="0" max="100000" value="100"></label><label class="check-label"><input id="unlimited-restarts" type="checkbox"> Unlimited until solved</label></div>
+        <details class="selected-algorithm"><summary>Selected Algorithm <span>Technical explanation, strengths & limitations</span></summary><div id="selected-algorithm-detail"></div></details>
+      </section>
+
+      <section class="control-bar card" aria-label="Algorithm execution controls">
+        <div class="run-controls"><button id="start" class="primary">▶ Play</button><button id="pause" disabled>Ⅱ Pause</button><button id="next-phase" title="Next Phase: advance one technical operation">Next Step <span>→</span></button><button id="next-iteration">Next Iteration <span>⇥</span></button><button id="previous">← Previous / History</button><button id="reset" class="text-button">↺ Reset</button></div>
+        <div class="auto-controls"><label class="check-label"><input id="auto-run" type="checkbox" checked> Run automatically</label><label class="speed-label">Speed<select id="speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option><option value="4">4×</option></select></label></div>
+      </section>
+      <div id="action-message" class="action-message" role="status" aria-live="polite"></div>
+
+      <section class="metrics" aria-label="Current search statistics">
+        <div class="metric hero-metric"><span title="Total number of attacking queen pairs on the entire current board">CURRENT COST</span><strong><em>h</em> = <b id="current-h">3</b></strong><small id="h-caption">attacking pairs</small></div>
+        <div class="metric"><span>ITERATION</span><strong id="iteration-value">0</strong><small id="total-iterations">0 total moves</small></div>
+        <div class="metric"><span>SIDEWAYS</span><strong id="sideways-value">0 <small>/ 100</small></strong><small>consecutive equal-cost moves</small></div>
+        <div class="metric"><span>RESTARTS</span><strong id="restart-value">0</strong><small>new starting states</small></div>
+        <div class="metric"><span>BEST COST SEEN</span><strong id="best-ever">3</strong><small>includes algorithm candidates</small></div>
+        <div class="metric status-metric"><span>SEARCH STATUS</span><strong id="status-badge" class="status ready">Ready</strong><small id="status-subtext">Start with a complete state</small></div>
+      </section>
+
+      <section class="workspace">
+        <article class="card board-panel">
+          <div class="card-heading"><div><span class="tiny-label">THE COMPLETE STATE</span><h2>Queen placement</h2></div><span id="board-size" class="tag">4 × 4</span></div>
+          <div id="view-banner" class="view-banner" hidden></div>
+          <div class="board-shell"><div id="column-labels" class="column-labels"></div><div id="row-labels" class="row-labels"></div><div id="board" class="board" aria-label="Queens board"><div id="board-cells" class="board-cells"></div><svg id="attack-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg><div id="queen-layer" class="queen-layer"></div></div></div>
+          <div class="state-display"><span id="state-display-label">CURRENT STATE</span><code id="state-array">[4, 3, 4, 2]</code><span id="display-h" class="tag">h = 3</span></div>
+          <p class="board-help" id="board-help">Click a queen to inspect every destination in its column.</p>
+          <div class="visual-toggles"><label><input id="show-lines" type="checkbox" checked> Attack lines</label><label><input id="show-coords" type="checkbox" checked> Coordinates</label><label><input id="show-ids" type="checkbox" checked> Queen IDs</label><label><input id="show-heuristics" type="checkbox" checked> Move costs</label></div>
+          <div class="board-legend"><span><i class="dot conflict"></i>Conflict</span><span><i class="dot candidate"></i>Candidate</span><span><i class="dot best"></i>Best move</span></div>
+        </article>
+
+        <article class="card process-panel">
+          <div class="card-heading"><div><span class="tiny-label">FOLLOW THE EXECUTION</span><h2>Algorithm Debugger</h2></div><span id="phase-counter" class="tag">1 / 8</span></div>
+          <div id="phase-track" class="phase-track"></div>
+          <div id="algorithm-flow" class="algorithm-flow" aria-label="Current algorithm flow"></div>
+          <div class="phase-copy"><span id="phase-eyebrow" class="tiny-label">PHASE 1 · INSPECT</span><h3 id="phase-title">Start with a complete state</h3><p id="phase-description"></p></div>
+          <div id="stop-explanation" class="stop-explanation" hidden aria-live="polite"></div>
+          <div class="code-heading"><span>PSEUDOCODE</span><span class="cost-chip">minimize h ↓</span></div>
+          <div id="pseudocode" class="pseudocode" aria-label="Algorithm pseudocode"></div>
+          <details class="variables-details" open><summary>Live variables <span>⌄</span></summary><dl id="debug-variables" class="debug-variables"></dl></details>
+          <div class="decision-note"><strong>The algorithm does not choose a queen first.</strong><p>It compares all complete candidate boards. The lowest cost determines both the queen and its destination row.</p></div>
+        </article>
+
+        <article class="card matrix-panel">
+          <div class="card-heading"><div><span class="tiny-label">COMPARE EVERY NEIGHBOR</span><h2>Successor h matrix</h2></div><span id="successor-count" class="tag">12 moves</span></div>
+          <p class="matrix-intro">Each value is the cost of the <strong>entire resulting board</strong>. <span class="muted">— means the queen is already there.</span></p>
+          <div id="matrix-context" class="matrix-context"></div>
+          <div id="scan-progress" class="scan-progress"></div>
+          <div class="matrix-scroll"><table id="successor-matrix" class="successor-matrix"></table></div>
+          <button id="reveal-values" class="text-button reveal-button">Reveal all h values for learning</button>
+          <div class="matrix-legend"><span><i class="dot best"></i>Lowest h</span><span><i class="dot sideways"></i>Equal to current</span><span>Hover for details · click to preview</span></div>
+          <div id="best-summary" class="best-summary"></div>
+          <div id="randomness-panel" class="randomness-panel" hidden></div>
+          <div id="candidate-panel" class="candidate-panel"><span class="tiny-label">MOVE INSPECTOR</span><h3>Select a candidate</h3><p>Hover a value to read its full-board cost. Click to preview without changing the current state.</p></div>
+          <div id="candidate-actions" class="candidate-actions" hidden><button id="preview-move">Preview</button><button id="apply-move" class="primary">Apply this move</button><button id="force-move" class="danger" hidden>Force Move</button><button id="choose-best" class="primary" hidden>Choose for algorithm</button><button id="return-current" class="text-button">Return to current state</button></div>
+        </article>
+      </section>
+
+      <section class="lower-grid">
+        <article class="card pairs-panel"><div class="card-heading"><div><span class="tiny-label">COUNT PAIRS, ONCE EACH</span><h2 id="pairs-title">Why is h = 3?</h2></div><span id="pairs-view-tag" class="tag">Current board</span></div><div id="attacking-pairs" class="attacking-pairs"></div><details class="manual-calculator"><summary>Calculate h Manually <span id="pair-count">6 pair tests</span></summary><p>For columns i &lt; j, test the row and diagonal once. Add 1 if either test is true.</p><div class="pair-table-scroll"><table class="pair-table"><thead><tr><th>Pair / coordinates</th><th>Same row?</th><th>Same diagonal?</th><th>Attack?</th></tr></thead><tbody id="pair-tests"></tbody></table></div><div id="pair-total" class="formula"></div></details></article>
+        <article class="card history-panel"><div class="card-heading"><div><span class="tiny-label">THE PATH THROUGH STATE SPACE</span><h2>Current state history</h2></div><span id="history-count" class="tag">1 state</span></div><p class="muted">Click a state to inspect it. The running state changes only when you use “Restore this state”.</p><div id="history-list" class="history-list"></div><div id="history-details" class="history-details" hidden></div><button id="restore-history" hidden>Restore this state</button><button id="return-history" class="text-button" hidden>Return to current state</button></article>
+        <article class="card restart-panel"><div class="card-heading"><div><span class="tiny-label">ESCAPE A STUCK SEARCH</span><h2>Random-restart hill climbing</h2></div><span class="restart-icon">↻</span></div><p>When search gets stuck, begin again from a new random complete state. Each restart explores a different path.</p><button id="random-restart">Restart From Random State</button><label class="check-label"><input id="auto-restart" type="checkbox"> Auto Random Restart Until Solved</label><p id="restart-note" class="field-help">Uses the restart limit above. Random-Restart mode enables this behavior automatically.</p><details class="sideways-explanation"><summary>How sideways moves help</summary><p>A move with unchanged h can cross a flat region to reach a state with a downhill exit (a shoulder). A flat local minimum may have no such exit. Immediate neighbors alone do not distinguish the two.</p><p>The consecutive limit prevents endless walks and cycles. A strictly improving move resets the sideways counter.</p></details></article>
+      </section>
+
+      <section class="counts-strip card" id="counts-explanation"></section>
+      <section class="card stats-panel"><div class="card-heading"><div><span class="tiny-label">MEASURE THE SEARCH</span><h2>Run statistics</h2></div><span class="tag">Algorithm evaluations only</span></div><div id="run-statistics" class="run-statistics"></div><p class="field-help">Manual previews and “Reveal all” are study operations, excluded from algorithm evaluation counts. First-choice may stop scanning before all neighbors are checked.</p></section>
+      <section class="card comparison-panel"><div class="card-heading"><div><span class="tiny-label">FOUR WAYS TO CHOOSE THE NEXT STATE</span><h2>Algorithm comparison</h2></div><span class="tag">Local search</span></div><div id="comparison-content"></div></section>
+      <section class="card learning-panel"><div class="card-heading"><div><span class="tiny-label">BUILD THE MENTAL MODEL</span><h2>The concepts behind the search</h2></div><span class="tag">Study guide</span></div><div id="learning-content"></div></section>
+      <details class="card tests-panel"><summary><span>Developer self-tests</span><span id="test-summary" class="tag">Checking…</span></summary><div class="tests-body"><p>These checks run locally on page load. No data or requests leave your computer.</p><button id="run-tests">Run tests again</button><div id="test-results"></div></div></details>
+    </main>
+    <footer><span>SEARCH / LAB <span class="muted">· N-Queens Hill-Climbing Visualizer</span></span><span>One queen per column. Every pair counted once.</span></footer>
+  </div>
+</body>
+</html>
