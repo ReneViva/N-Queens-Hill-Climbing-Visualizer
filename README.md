@@ -1,6 +1,8 @@
-# N-Queens Hill-Climbing Visualizer
+# Queens_by_Rene
 
 An offline educational web application for studying four hill-climbing local-search variants through the Queens problem: Standard / Steepest, Stochastic, First-Choice, and Random-Restart. The board, successor matrix, debugger, pair calculator, candidate previews, history, and explanations show how a complete board changes one queen at a time. The selector changes the actual search behavior and its playback, flow, debugger, matrix, and statistics.
+
+**Open online:** [Queens_by_Rene](https://reneviva.github.io/Queens_by_Rene/). The public site is hosted on GitHub Pages and requires no account to visit.
 
 Download this repository using **Code → Download ZIP**, then extract it into a folder of your choice. You can also clone the repository. Keep the application files together in the extracted or cloned folder.
 
@@ -16,6 +18,7 @@ Double-click **index.html** in this folder. It opens in your browser and works o
 - **app.js** — rendering, mode-specific phased execution, playback controls, preview/inspection, history, statistics, and animation.
 - **learning.js** — six expandable learning sections, configuration-specific counts, variant metadata/pseudocode/flow, and a study comparison table.
 - **README.md** — these instructions.
+- **.nojekyll** — serves the plain static application directly on GitHub Pages.
 
 All scripts are plain local JavaScript. No external fonts, libraries, or network services are needed.
 
